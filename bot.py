@@ -3,11 +3,8 @@ import random
 import os
 from telethon import TelegramClient, events, functions, types
 import openai
-from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
-
+# --- Load from Railway Environment Variables ---
 api_id = int(os.getenv("API_ID"))
 api_hash = os.getenv("API_HASH")
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -18,13 +15,12 @@ session_name = "userbot"
 
 client = TelegramClient(session_name, api_id, api_hash)
 
-
-# --- MEMORY VARIABLES ---
+# --- MEMORY ---
 user_context = {}
 user_confirm_pending = {}
 ai_active = True
 
-# --- SYSTEM PROMPT for GPT ---
+# --- SYSTEM PROMPT ---
 system_prompt = """
 Tum ek professional aur friendly OTT, Adult, Games subscription seller ho.
 Tum incoming users se dosti bhare human style me baat karte ho.
@@ -34,7 +30,7 @@ Kisi ko unsolicited message nahi karte.
 
 confirm_words = ['haa', 'han', 'ha', 'krde', 'karde', 'kar de', 'done', 'paid', 'payment ho gaya', 'payment done', 'payment hogaya']
 
-# --- TYPING SIMULATION ---
+# --- Typing Simulation ---
 async def send_typing(event):
     try:
         await event.client(functions.messages.SetTypingRequest(
@@ -45,7 +41,7 @@ async def send_typing(event):
     except Exception as e:
         print(f"Typing error: {e}")
 
-# --- KEEP ONLINE ---
+# --- Keep Always Online ---
 async def keep_online():
     while True:
         try:
@@ -54,7 +50,7 @@ async def keep_online():
             print(f"Online error: {e}")
         await asyncio.sleep(60)
 
-# --- MESSAGE HANDLER ---
+# --- Message Handler ---
 @client.on(events.NewMessage(outgoing=False))
 async def handler(event):
     global ai_active
@@ -63,7 +59,7 @@ async def handler(event):
     sender_id = sender.id
     user_message = event.raw_text.strip().lower()
 
-    # OWNER CONTROL
+    # Owner Controls
     if sender_id == admin_id:
         if user_message == '/stopai':
             ai_active = False
@@ -74,7 +70,6 @@ async def handler(event):
             await event.respond("✅ AI replies resumed.")
             return
 
-    # IF AI OFF
     if not ai_active:
         return
 
@@ -88,7 +83,7 @@ async def handler(event):
         user_context[sender_id] = user_context[sender_id][-10:]
 
     try:
-        # Confirm message system
+        # Confirm Handling
         if any(word in user_message for word in confirm_words):
             if sender_id in user_confirm_pending:
                 plan = user_confirm_pending[sender_id]
@@ -114,7 +109,7 @@ async def handler(event):
                 await event.respond("✅ Payment Confirmed! QR code generate ho raha hai 📲")
                 return
 
-        # Normal ChatGPT Conversation
+        # Normal AI Conversation
         messages_for_gpt = [{"role": "system", "content": system_prompt}] + user_context[sender_id]
 
         response = openai.chat.completions.create(
@@ -133,7 +128,7 @@ async def handler(event):
         print(f"Error: {e}")
         await event.respond("Bhai thoda error aagaya 😔 Try later.")
 
-# --- START CLIENT ---
+# --- Start Client ---
 client.start()
 client.loop.create_task(keep_online())
 client.run_until_disconnected()
