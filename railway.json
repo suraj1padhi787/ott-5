@@ -1,0 +1,11 @@
+{
+    "build": {
+      "env": {
+        "PYTHON_VERSION": "3.10"
+      }
+    },
+    "deploy": {
+      "startCommand": "bash start.sh"
+    }
+  }
+  
