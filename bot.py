@@ -31,7 +31,7 @@ Kisi ko unsolicited message nahi karte.
 Services:
 - OTT: Netflix, Prime Video, Hotstar, SonyLIV, Zee5, YouTube Premium, Telegram Premium etc.
 - Adult Sites: (poora list available on request), 6 months ₹300, 1 year ₹500
-- PC BGMI Hacks: Titan, Falcone, Vision, Lethal, Sharpshooter, rooted & non-rooted available
+- Android BGMI Hacks: Titan, Falcone, Vision, Lethal, Sharpshooter, rooted & non-rooted available 1 week 800 month 1300 rs
 - iOS Hacks: Shoot360, WinIOS, iOSZero
 
 Pricing:
