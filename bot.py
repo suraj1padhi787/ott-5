@@ -18,6 +18,7 @@ client = TelegramClient(session_name, api_id, api_hash)
 # --- MEMORY ---
 user_context = {}
 user_confirm_pending = {}
+user_selected_product = {}
 ai_active = True
 
 # --- SYSTEM PROMPT ---
@@ -26,7 +27,6 @@ Tum ek professional aur friendly OTT, Adult, Games subscription seller ho.
 Tum incoming users se dosti bhare human style me baat karte ho.
 Hard-coded message nahi dete, sabko naturally reply karte ho.
 Kisi ko unsolicited message nahi karte.
-Tum ek professional aur blunt OTT, Game aur Adult subscription seller ho.
 
 Services:
 - OTT: Netflix, Prime Video, Hotstar, SonyLIV, Zee5, YouTube Premium, Telegram Premium etc.
@@ -42,36 +42,10 @@ Pricing:
 - ChatGPT Premium 1 Year ₹1000
 
 Rules:
-Tum ek smart aur friendly OTT subscription seller ho India me.
-Tum sabhi major OTT platforms ka subscription sell karte ho:
-
-Netflix, Amazon Prime Video, Disney+ Hotstar, SonyLIV, Zee5, Voot, ALT Balaji, MX Player, Ullu, Hoichoi, Eros Now, JioCinema, Discovery+, SunNxt, Hungama Play, ShemarooMe, Lionsgate Play, ManoramaMAX, DocuBay, Epic On, Chaupal, Planet Marathi, Klikk, Addatimes, NammaFlix, Tarang Plus, Aha, TVF Play, Vi Movies & TV, YouTube Premium, Telegram Premium, ChatGPT Subscription bhi bech rahe ho.
-
-Plans:
-- 1 Year Plan = ₹500 (Own Email/Number activation, Premium Plan, Max Screen Support, 1 Year Guarantee)
-- 6 Months Plan = ₹350 (Random Email Activation, OTP login, same features but random email)
-- Combo Offer = Any 4 OTTs 1 Year Plan = ₹1000 (Own Email/Number Activation, Max Screens support, Premium Plans)
-- ChatGPT Premium 1 Year Plan = ₹1000
-
-Movie handling:
-- Agar user kisi movie ka naam le jaise "Animal", "Dunki", "Pathaan", to batana ki yeh movie kis OTT pe available hai
-- Fir friendly bolna ki "OTT buy karlo bhai, full HD dekh paoge ❤️"
-PC Games:
-- Agar user koi game ka naam le (e.g., GTA V, COD, Valorant), bolo ₹399 me milega ✅ Original price bhi batana aur Streaming pe available batana.
-
-Agar user 'haa', 'ok', 'krde', 'confirm', 'yes', 'done' jese shabd bole:
-- pehele confirm karana he 6 month cahiye ya 1year agar user validity choose kre toh hi qr wala mesage bheje
-- To context dekh kar decide karo kya reply dena hai.
-- Agar lagta hai user payment confirm kar raha hai to "QR code generate ho raha hai bhai ❤️" type ka human funny reply do.
-- Agar lagta hai normal casual baat hai to bas friendly dosti bhara normal reply do.
-- Hardcoded kabhi kuch na bolo, context samajh ke smart reply do.
-- agar costmore zyada force kre toh 50 rs ka discount de dena
-- 
-
-Rules:
 - Jab user OTT ka naam le to plan aur price smartly suggest karo
 - Jab 6 month bole to politely encourage karo ki 1 year better hai
 - Jab combo ya 4 ott bole to combo offer smartly suggest karo
+- user ko 4 ott choose krne ka option bhi dena 
 - Jab thank you bole to friendly short welcome bolo
 - Hinglish me short (2-3 line) dosti bhare reply do
 - Jab koi gali de to 3 warning ke baad mute kar dena aur reply ignore karna
@@ -80,6 +54,7 @@ Rules:
 - agar user bole ki usko koi or language me baat karna he toh usse age ki baat usilanguage me krna jab tak wo language chnge karne ko na bolea
 - user ko bore bilkul nai krna aram se usko full convice krna ki wo buy kare
 - jab ott ka price bata rahe ho us time 1 smart comparision dedo official price or hamare price me 
+- user ko thoda bhi shak nai hona cahiyee ki tum ai ya bot ho tumhra naam suraj he
 """
 
 confirm_words = ['haa', 'han', 'ha', 'krde', 'karde', 'kar de', 'done', 'paid', 'payment ho gaya', 'payment done', 'payment hogaya']
@@ -113,7 +88,6 @@ async def handler(event):
     sender_id = sender.id
     user_message = event.raw_text.strip().lower()
 
-    # Owner Controls
     if sender_id == admin_id:
         if user_message == '/stopai':
             ai_active = False
@@ -141,29 +115,61 @@ async def handler(event):
         if any(word in user_message for word in confirm_words):
             if sender_id in user_confirm_pending:
                 plan = user_confirm_pending[sender_id]
-
                 user_link = f'<a href="tg://user?id={sender_id}">{sender.first_name}</a>'
 
                 post_text = f"""
 ✅ New Payment Confirmation!
 
 👤 User: {user_link}
+🎯 Subscription: {plan['product']}
 💰 Amount: {plan['price']}
-🎯 Subscription: {plan['subscription_name']}
 ⏳ Validity: {plan['validity']}
 """
-
                 await client.send_message(
                     GROUP_ID,
                     post_text,
                     parse_mode='html'
                 )
-                del user_confirm_pending[sender_id]
-
                 await event.respond("✅ Payment Confirmed! QR code generate ho raha hai 📲")
+                del user_confirm_pending[sender_id]
                 return
 
-        # Normal AI Conversation
+        # Product detection from user message
+        products = ["netflix", "prime", "hotstar", "sony", "zee5", "voot", "mx player", "ullu", "hoichoi", "eros", "jio", "discovery", "shemaroo", "alt", "sun", "aha", "youtube", "telegram", "chatgpt", "adult", "hack", "bgmi", "falcone", "vision", "lethal", "titan", "shoot360", "win", "ioszero"]
+        matched = [p for p in products if p in user_message]
+
+        if matched and sender_id not in user_confirm_pending:
+            selected_product = matched[0].capitalize()
+            user_selected_product[sender_id] = selected_product
+            await event.respond(f"✅ {selected_product} ke liye kitni validity chahiye bhai? 6 months ya 1 year?")
+            return
+
+        # Validity handling
+        if "6 month" in user_message or "6 months" in user_message:
+            if sender_id in user_selected_product:
+                product = user_selected_product[sender_id]
+                price = "₹350" if product.lower() in ["netflix", "prime", "hotstar", "sony", "zee5", "youtube", "telegram"] else "₹300"
+                user_confirm_pending[sender_id] = {
+                    "product": product,
+                    "validity": "6 Months",
+                    "price": price
+                }
+                await event.respond("✅ 6 Months selected bhai! Confirm karo (haa/ok/krde).")
+                return
+
+        if "1 year" in user_message or "12 months" in user_message:
+            if sender_id in user_selected_product:
+                product = user_selected_product[sender_id]
+                price = "₹500" if product.lower() in ["netflix", "prime", "hotstar", "sony", "zee5", "youtube", "telegram"] else "₹500"
+                user_confirm_pending[sender_id] = {
+                    "product": product,
+                    "validity": "1 Year",
+                    "price": price
+                }
+                await event.respond("✅ 1 Year selected bhai! Confirm karo (haa/ok/krde).")
+                return
+
+        # Normal AI conversation
         messages_for_gpt = [{"role": "system", "content": system_prompt}] + user_context[sender_id]
 
         response = openai.chat.completions.create(
